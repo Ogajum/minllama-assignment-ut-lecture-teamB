@@ -1,5 +1,6 @@
 from contextlib import nullcontext
 from typing import Optional, Tuple
+import numpy as np
 import math
 import torch
 import torch.nn as nn
@@ -273,12 +274,11 @@ class Llama(LlamaPreTrainedModel):
             # forward the model to get the logits for the index in the sequence
             logits, _ = self(idx_cond)
             logits = logits[:, -1, :] # crop to just the final time step
-            # todo
-            raise NotImplementedError
+            # todo Ogajum
 
             if temperature == 0.0:
                 # select the single most likely index
-                idx_next = None
+                idx_next = torch.argmax(logits, dim=-1, keepdim=True)
             else:
                 '''
                 Perform temperature sampling:
@@ -289,7 +289,20 @@ class Llama(LlamaPreTrainedModel):
 
                 Note that we are not using top-k sampling/nucleus sampling in this procedure.
                 '''
-                idx_next = None
+                rng = np.random.default_rng()
+                softmax = nn.Softmax(dim=-1)
+                scaled_logits = logits / temperature
+                scaled_probs = softmax(scaled_logits)
+                # 棄却サンプリングで次のトークンをサンプリング
+                chosen_idx = []
+                for b in scaled_probs:
+                    chosen_idx.append(rng.choice(scaled_probs.shape[-1],
+                                        replace=True,
+                                        p=b, 
+                                        axis=0)
+                                      )
+                        
+                idx_next = Tensor(chosen_idx).unsqueeze(-1)
             # append sampled index to the running sequence and continue
             idx = torch.cat((idx, idx_next), dim=1)
 
