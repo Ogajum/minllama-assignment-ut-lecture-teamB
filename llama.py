@@ -310,9 +310,8 @@ class Llama(LlamaPreTrainedModel):
                 Note that we are not using top-k sampling/nucleus sampling in this procedure.
                 '''
                 rng = np.random.default_rng()
-                softmax = nn.Softmax(dim=-1)
                 scaled_logits = logits / temperature
-                scaled_probs = softmax(scaled_logits)
+                scaled_probs = F.softmax(scaled_logits,dim=-1)
                 # 棄却サンプリングで次のトークンをサンプリング
                 chosen_idx = []
                 for b in scaled_probs:
