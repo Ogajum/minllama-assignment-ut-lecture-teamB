@@ -44,6 +44,11 @@ class RMSNorm(torch.nn.Module):
         Returns:
             torch.Tensor: The normalized tensor.
         """
+        # テンソルの計算がこの書き方でうまくいくかいまいち自信がない
+        # 平均をとってepsと足し合わせ、それによって元の入力を正規化する
+        # pdfの方で書かれているgというテンソルは、おそらくforwardの部分でかかる重みだと思われる
+        RMS_x = torch.sqrt(torch.mean(x*x, dim=-1, keepdim=True) + self.eps)
+        return x/RMS_x
         # todo
         raise NotImplementedError
 
@@ -94,6 +99,17 @@ class Attention(nn.Module):
         Make sure to use attention_dropout (self.attn_dropout) on the computed
         attention matrix before applying it to the value tensor.
         '''
+        # softmax関数に渡す前にQと転置されたKの積を取り、それをdk（キーの次元）で割る
+        attn_scores = torch.matmul(query, key.transpose(-2, -1)) / math.sqrt(self.head_dim)
+        # 得られたものをsoftmax関数にかける
+        attn_probs = F.softmax(attn_scores, dim=-1)
+        # 問題文から見るとこれは必要みたい？
+        # トレーニング中の過剰適合の可能性を大幅に減らすことができるらしい
+        attn_probs = self.attn_dropout(attn_probs)
+        # さらにバリューをかける
+        attn_output = torch.matmul(attn_probs, value)
+        
+        return attn_output
         # todo
         raise NotImplementedError
 
@@ -197,6 +213,10 @@ class LlamaLayer(nn.Module):
         5) add a residual connection from the unnormalized self-attention output to the
            output of the feed-forward network
         '''
+        attn_output = self.attention(self.attention_norm(x))
+        x = x + attn_output
+        ffn_output = self.feed_forward(self.ffn_norm(x))
+        x = x + ffn_output
         # todo
         raise NotImplementedError
 
