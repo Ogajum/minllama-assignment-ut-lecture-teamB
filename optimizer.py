@@ -79,6 +79,7 @@ class AdamW(Optimizer):
                 # https://arxiv.org/abs/1412.6980
 
                 # Update parameters
+                # denom は分母
                 denom = (torch.sqrt(exp_avg_sq) / math.sqrt(bias_correction2)).add_(group["eps"])
                 step_size = alpha / bias_correction1
                 p.data.addcdiv_(exp_avg, denom, value=-step_size)
