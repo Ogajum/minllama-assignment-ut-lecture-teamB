@@ -340,10 +340,15 @@ class Llama(LlamaPreTrainedModel):
                 chosen_idx = []
                 for b in scaled_probs:
                     chosen_idx.append(
-                        rng.choice(scaled_probs.shape[-1], replace=True, p=b, axis=0)
+                        rng.choice(
+                            scaled_probs.shape[-1],
+                            replace=True,
+                            p=b.cpu().numpy(),
+                            axis=0,
+                        )
                     )
 
-                idx_next = Tensor(chosen_idx).unsqueeze(-1)
+                idx_next = torch.LongTensor(chosen_idx).unsqueeze(-1)
             # append sampled index to the running sequence and continue
             idx = torch.cat((idx, idx_next), dim=1)
 
